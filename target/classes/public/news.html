@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/axios.js"></script>
+    <style>
+        .desc-text {
+            height: 50px;
+            overflow: hidden;
+        }
+        a,a:link, a:visited, a:hover, a:active {
+            text-decoration: none;
+        }
+        .hl {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row mt-3 pb-3 mb-3" style="border-bottom: 1px solid #e2e3e5;">
+        <div class="col-10">
+            <form class="form-inline" onsubmit="javascript: return false;">
+                <div class="form-group">
+                    <input class="form-control col" style="width: 400px;" id="search-text" onkeyup="searchNews()">
+                </div>
+                <button type="submit" onclick="searchNews()" class="btn btn-primary col-1">搜索一下</button>
+            </form>
+        </div>
+    </div>
+    <div id="app">
+        <div v-for="n in news" class="row mb-3" :key="n.id">
+            <div class="col-10">
+                <h4><a target="_blank" :href="n.url"><span v-html="n.title"></span></a></h4>
+                <p v-html="n.content">
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                news: []
+            }
+        }
+    })
+    // 标签模糊查询
+    $('#search-text').autocomplete({
+        // 延迟查询，意思是当在输入框中多输入了一个词，多久往服务器发送请求
+        delay: 300,
+        // 指的是下拉列表中最多出现多少个次
+        max: 20,
+        source: function(request, cb) {
+            $.ajax({
+                url: '/es/tag',
+                data: {tag: request.term},
+                type: 'get',
+                dataType: 'json',
+                success: function(_data) {
+                    let tips = [];
+                    for(let i = 0; i < _data.length; i++) {
+                        tips.push(_data[i]);
+                    }
+                    cb(tips);
+                }
+            })
+        },
+        // 最低输入多少个字母就往服务器端发送请求
+        minlength: 1
+    })
+
+    // 高亮查询
+    function searchNews() {
+        // 当用户按下回车键时
+        if(event.keyCode === 13) {
+            let searchText = $('#search-text').val();
+            if(searchText && searchText.trim()) {
+                vm.news = [];
+                axios.get('es/highLightSearch?keyword=' + searchText)
+                    .then(res => {
+                        for(let i = 0; i < res.data.length; i++) {
+                            vm.news.push(res.data[i])
+                        }
+                    })
+            }
+        }
+    }
+</script>
+</html>
